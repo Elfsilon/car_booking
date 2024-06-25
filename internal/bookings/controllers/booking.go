@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/Elfsilon/car_booking/internal/bookings/appraiser"
+	"github.com/Elfsilon/car_booking/internal/bookings/services"
 )
 
 type AppraisePeriodResponse struct {
@@ -14,13 +15,29 @@ type AppraisePeriodResponse struct {
 }
 
 type BookingController struct {
-	appraiser appraiser.RentAppraiser
+	appraiser  appraiser.RentAppraiser
+	carService services.CarsService
 }
 
 func NewBookingController(appraiser appraiser.RentAppraiser) *BookingController {
 	return &BookingController{
 		appraiser: appraiser,
 	}
+}
+
+func (c *BookingController) GetCarStatus(w http.ResponseWriter, r *http.Request) {
+	carID := r.URL.Query().Get("car_id")
+	if carID == "" {
+		http.Error(w, "param 'carID' is required", 400)
+		return
+	}
+
+	if _, err := c.carService.GetCarInfo(carID); err != nil {
+		http.Error(w, err.Error(), 400)
+		return
+	}
+
+	// TODO: get car status
 }
 
 func (c *BookingController) AppraisePeriod(w http.ResponseWriter, r *http.Request) {
