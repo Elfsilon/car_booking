@@ -12,7 +12,7 @@ import (
 )
 
 func Setup(db *database.Database) *chi.Mux {
-	bookingsRepo := repositories.NewBookings()
+	bookingsRepo := repositories.NewBookings(db)
 	tariffsRepo := repositories.NewTariffs(db)
 
 	carsService := services.NewMockCars()

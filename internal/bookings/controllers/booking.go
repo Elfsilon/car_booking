@@ -12,6 +12,24 @@ import (
 	"github.com/Elfsilon/car_booking/internal/bookings/services"
 )
 
+var ErrCarIDParamRequired = paramRequired("car_id")
+var ErrFromParamRequired = paramRequired("from")
+var ErrToParamRequired = paramRequired("to")
+var ErrStartIsAfterEnd = "invalid period: 'from' must be earlier than 'to'"
+var ErrRangeOverflow = "invalid period: range must be from 0 to 30 days long (excluding)"
+
+func paramRequired(name string) string {
+	return fmt.Sprintf("param '%v' is required", name)
+}
+
+func serializationError(err error) string {
+	return fmt.Sprintf("param '%v' is required", err)
+}
+
+func tariffError(err error) string {
+	return fmt.Sprintf("unable to get basic tariff: %s", err)
+}
+
 type CarStatusResponse struct {
 	Bookings []models.CarBooking `json:"bookings"`
 }
@@ -35,7 +53,7 @@ func NewBookingController(tariffs *services.Tariffs, bookings *services.Bookings
 func (c *BookingController) GetCarStatus(w http.ResponseWriter, r *http.Request) {
 	carID := r.URL.Query().Get("car_id")
 	if carID == "" {
-		http.Error(w, "param 'carID' is required", 400)
+		http.Error(w, ErrCarIDParamRequired, 400)
 		return
 	}
 
@@ -51,8 +69,7 @@ func (c *BookingController) GetCarStatus(w http.ResponseWriter, r *http.Request)
 
 	responseBytes, err := json.Marshal(CarStatusResponse{bookings})
 	if err != nil {
-		message := fmt.Sprintf("unable to serialize response: %s", err)
-		http.Error(w, message, 500)
+		http.Error(w, serializationError(err), 500)
 		return
 	}
 
@@ -62,13 +79,13 @@ func (c *BookingController) GetCarStatus(w http.ResponseWriter, r *http.Request)
 func (c *BookingController) AppraisePeriod(w http.ResponseWriter, r *http.Request) {
 	fromDateString := r.URL.Query().Get("from")
 	if fromDateString == "" {
-		http.Error(w, "param 'from' is required", 400)
+		http.Error(w, ErrFromParamRequired, 400)
 		return
 	}
 
 	toDateString := r.URL.Query().Get("to")
 	if toDateString == "" {
-		http.Error(w, "param 'to' is required", 400)
+		http.Error(w, ErrToParamRequired, 400)
 		return
 	}
 
@@ -85,16 +102,19 @@ func (c *BookingController) AppraisePeriod(w http.ResponseWriter, r *http.Reques
 	}
 
 	if fromDate.After(toDate) {
-		http.Error(w, "invalid period: 'from' must be earlier than 'to'", 400)
+		http.Error(w, ErrStartIsAfterEnd, 400)
 		return
 	}
 
 	days := int(toDate.Sub(fromDate).Hours() / 24)
+	if days > 29 {
+		http.Error(w, ErrRangeOverflow, 400)
+		return
+	}
 
 	tariffPrice, err := c.tariffs.GetPriceByName("basic")
 	if err != nil {
-		messasge := fmt.Sprintf("unable to get basic tariff: %s", err)
-		http.Error(w, messasge, 500)
+		http.Error(w, tariffError(err), 500)
 		return
 	}
 
@@ -104,8 +124,7 @@ func (c *BookingController) AppraisePeriod(w http.ResponseWriter, r *http.Reques
 	response := AppraisePeriodResponse{Sum: sum}
 	responseBytes, err := json.Marshal(response)
 	if err != nil {
-		message := fmt.Sprintf("unable to serialize response: %s", err)
-		http.Error(w, message, 500)
+		http.Error(w, serializationError(err), 500)
 		return
 	}
 

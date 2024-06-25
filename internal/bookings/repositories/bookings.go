@@ -3,32 +3,39 @@ package repositories
 import (
 	"time"
 
-	"github.com/Elfsilon/car_booking/internal/bookings/entity"
+	"github.com/Elfsilon/car_booking/internal/bookings/core/database"
 	"github.com/Elfsilon/car_booking/internal/bookings/models"
 )
 
-var mocks = []entity.Booking{
-	{0, "A", "c84fde82-6679-4384-af11-7406de3d3e14", "2024-06-01", "2024-06-10"},
-	{1, "B", "c84fde82-6679-4384-af11-7406de3d3e14", "2024-06-15", "2024-06-21"},
-	{2, "C", "542af38b-c4b9-4d74-a7fa-e21c2a50a8cf", "2024-06-4", "2024-06-12"},
+type Bookings struct {
+	db *database.Database
 }
 
-type Bookings struct{}
-
-func NewBookings() *Bookings {
-	return &Bookings{}
+func NewBookings(db *database.Database) *Bookings {
+	return &Bookings{db}
 }
 
 func (b *Bookings) GetAllByCar(carID string) ([]models.CarBooking, error) {
-	bookings := make([]models.CarBooking, 0)
-	for _, b := range mocks {
-		if carID == b.CarID {
-			bookings = append(bookings, models.CarBooking{
-				From: b.From,
-				To:   b.To,
-			})
-		}
+	query := `
+		SELECT id, from_date, to_date 
+		FROM bookings
+		WHERE car_id = $1
+	`
+
+	rows, err := b.db.I().Query(query, carID)
+	if err != nil {
+		return nil, err
 	}
+
+	bookings := make([]models.CarBooking, 0)
+	for rows.Next() {
+		b := models.CarBooking{}
+		if err := rows.Scan(&b.From, &b.To); err != nil {
+			return nil, err
+		}
+		bookings = append(bookings, b)
+	}
+
 	return bookings, nil
 }
 
