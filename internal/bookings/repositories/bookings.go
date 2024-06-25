@@ -3,8 +3,8 @@ package repositories
 import (
 	"time"
 
+	"github.com/Elfsilon/car_booking/internal/bookings/entity"
 	"github.com/Elfsilon/car_booking/internal/bookings/models"
-	"github.com/Elfsilon/car_booking/internal/entity"
 )
 
 var mocks = []entity.Booking{

@@ -21,14 +21,14 @@ type AppraisePeriodResponse struct {
 }
 
 type BookingController struct {
-	appraiser appraiser.RentAppraiser
-	bookings  *services.Bookings
+	tariffs  *services.Tariffs
+	bookings *services.Bookings
 }
 
-func NewBookingController(appraiser appraiser.RentAppraiser, bookings *services.Bookings) *BookingController {
+func NewBookingController(tariffs *services.Tariffs, bookings *services.Bookings) *BookingController {
 	return &BookingController{
-		appraiser: appraiser,
-		bookings:  bookings,
+		tariffs:  tariffs,
+		bookings: bookings,
 	}
 }
 
@@ -90,7 +90,16 @@ func (c *BookingController) AppraisePeriod(w http.ResponseWriter, r *http.Reques
 	}
 
 	days := int(toDate.Sub(fromDate).Hours() / 24)
-	sum := c.appraiser.Appraise(days)
+
+	tariffPrice, err := c.tariffs.GetPriceByName("basic")
+	if err != nil {
+		messasge := fmt.Sprintf("unable to get basic tariff: %s", err)
+		http.Error(w, messasge, 500)
+		return
+	}
+
+	apr := appraiser.NewBasicAppraiser(tariffPrice)
+	sum := apr.Appraise(days)
 
 	response := AppraisePeriodResponse{Sum: sum}
 	responseBytes, err := json.Marshal(response)

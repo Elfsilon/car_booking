@@ -1,6 +1,8 @@
 package appraiser
 
-import "github.com/Elfsilon/car_booking/internal/bookings/utils"
+import (
+	"github.com/Elfsilon/car_booking/internal/bookings/core/utils"
+)
 
 type step struct {
 	days     int
