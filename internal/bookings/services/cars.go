@@ -1,17 +1,19 @@
 package services
 
 import (
-	"fmt"
+	"errors"
 
 	"github.com/Elfsilon/car_booking/internal/bookings/models"
 )
 
-type CarsService struct {
+var ErrCarNotFound = errors.New("car with provided id not found")
+
+type Cars struct {
 	cars map[string]models.CarInfo
 }
 
-func NewMockCarsService() *CarsService {
-	return &CarsService{
+func NewMockCars() *Cars {
+	return &Cars{
 		cars: map[string]models.CarInfo{
 			"c84fde82-6679-4384-af11-7406de3d3e14": {Sign: "Н314ХО123", Name: "Lada Granta", Color: "White"},
 			"e78b2415-b47c-435a-91e2-655ec5a08023": {Sign: "М265ДЫ123", Name: "Lada Vesta", Color: "Blue"},
@@ -22,10 +24,10 @@ func NewMockCarsService() *CarsService {
 	}
 }
 
-func (s *CarsService) GetCarInfo(carID string) (models.CarInfo, error) {
+func (s *Cars) GetCarInfo(carID string) (models.CarInfo, error) {
 	info, ok := s.cars[carID]
 	if !ok {
-		return models.CarInfo{}, fmt.Errorf("car with provided id=%v not found", carID)
+		return models.CarInfo{}, ErrCarNotFound
 	}
 	return info, nil
 }

@@ -2,26 +2,33 @@ package controllers
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"net/http"
 	"time"
 
 	"github.com/Elfsilon/car_booking/internal/bookings/appraiser"
+	"github.com/Elfsilon/car_booking/internal/bookings/models"
 	"github.com/Elfsilon/car_booking/internal/bookings/services"
 )
+
+type CarStatusResponse struct {
+	Bookings []models.CarBooking `json:"bookings"`
+}
 
 type AppraisePeriodResponse struct {
 	Sum float64 `json:"sum"`
 }
 
 type BookingController struct {
-	appraiser  appraiser.RentAppraiser
-	carService services.CarsService
+	appraiser appraiser.RentAppraiser
+	bookings  *services.Bookings
 }
 
-func NewBookingController(appraiser appraiser.RentAppraiser) *BookingController {
+func NewBookingController(appraiser appraiser.RentAppraiser, bookings *services.Bookings) *BookingController {
 	return &BookingController{
 		appraiser: appraiser,
+		bookings:  bookings,
 	}
 }
 
@@ -32,12 +39,24 @@ func (c *BookingController) GetCarStatus(w http.ResponseWriter, r *http.Request)
 		return
 	}
 
-	if _, err := c.carService.GetCarInfo(carID); err != nil {
-		http.Error(w, err.Error(), 400)
+	bookings, err := c.bookings.GetCarStatus(carID)
+	if err != nil {
+		if errors.Is(err, services.ErrCarNotFound) {
+			http.Error(w, err.Error(), 400)
+		} else {
+			http.Error(w, err.Error(), 500)
+		}
 		return
 	}
 
-	// TODO: get car status
+	responseBytes, err := json.Marshal(CarStatusResponse{bookings})
+	if err != nil {
+		message := fmt.Sprintf("unable to serialize response: %s", err)
+		http.Error(w, message, 500)
+		return
+	}
+
+	w.Write(responseBytes)
 }
 
 func (c *BookingController) AppraisePeriod(w http.ResponseWriter, r *http.Request) {
