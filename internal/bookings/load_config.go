@@ -13,12 +13,17 @@ func (a *App) LoadConfig() {
 	host, port := env.MustLoadString("HOST"), env.MustLoadInt("PORT")
 	addr := fmt.Sprintf("%v:%v", host, port)
 
+	bookingPause := env.MustLoadInt("BOOKING_PAUSE")
+
 	a.config = &config.AppConfig{
 		DB: &config.DatabaseConfig{
 			ConnString: conn,
 		},
 		Server: &config.ServerConfig{
 			Addr: addr,
+		},
+		CarBooking: &config.CarBookingConfig{
+			BookingPause: bookingPause,
 		},
 	}
 }

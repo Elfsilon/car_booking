@@ -24,7 +24,7 @@ func NewMockCars() *Cars {
 	}
 }
 
-func (s *Cars) GetCarInfo(carID string) (models.CarInfo, error) {
+func (s *Cars) GetInfo(carID string) (models.CarInfo, error) {
 	info, ok := s.cars[carID]
 	if !ok {
 		return models.CarInfo{}, ErrCarNotFound

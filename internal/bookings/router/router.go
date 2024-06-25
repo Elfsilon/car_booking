@@ -4,6 +4,7 @@ import (
 	"net/http"
 
 	"github.com/Elfsilon/car_booking/internal/bookings/controllers"
+	"github.com/Elfsilon/car_booking/internal/bookings/core/config"
 	"github.com/Elfsilon/car_booking/internal/bookings/core/database"
 	"github.com/Elfsilon/car_booking/internal/bookings/repositories"
 	"github.com/Elfsilon/car_booking/internal/bookings/services"
@@ -11,12 +12,12 @@ import (
 	"github.com/go-chi/chi/v5/middleware"
 )
 
-func Setup(db *database.Database) *chi.Mux {
+func Setup(config *config.AppConfig, db *database.Database) *chi.Mux {
 	bookingsRepo := repositories.NewBookings(db)
 	tariffsRepo := repositories.NewTariffs(db)
 
 	carsService := services.NewMockCars()
-	bookingsService := services.NewBookings(carsService, bookingsRepo)
+	bookingsService := services.NewBookings(config.CarBooking, carsService, bookingsRepo)
 	tariffsService := services.NewTariffs(tariffsRepo)
 
 	ctr := controllers.NewBookingController(tariffsService, bookingsService)
@@ -31,8 +32,9 @@ func Setup(db *database.Database) *chi.Mux {
 		})
 	})
 
-	r.Get("/status", ctr.GetCarStatus)
+	r.Get("/booked", ctr.GetUnavailableDates)
 	r.Get("/appraise", ctr.AppraisePeriod)
+	r.Post("/book", ctr.Book)
 
 	return r
 }

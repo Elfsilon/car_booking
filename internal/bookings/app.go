@@ -35,7 +35,7 @@ func (a *App) Run() {
 
 	server := http.Server{
 		Addr:    a.config.Server.Addr,
-		Handler: router.Setup(db),
+		Handler: router.Setup(a.config, db),
 	}
 
 	if err := server.ListenAndServe(); err != nil {

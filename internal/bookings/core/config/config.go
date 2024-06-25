@@ -1,8 +1,9 @@
 package config
 
 type AppConfig struct {
-	DB     *DatabaseConfig
-	Server *ServerConfig
+	DB         *DatabaseConfig
+	Server     *ServerConfig
+	CarBooking *CarBookingConfig
 }
 
 type DatabaseConfig struct {
@@ -11,4 +12,8 @@ type DatabaseConfig struct {
 
 type ServerConfig struct {
 	Addr string
+}
+
+type CarBookingConfig struct {
+	BookingPause int
 }
