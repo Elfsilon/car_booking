@@ -1,12 +1,11 @@
 package router
 
 import (
-	"net/http"
-
 	"github.com/Elfsilon/car_booking/internal/bookings/controllers"
 	"github.com/Elfsilon/car_booking/internal/bookings/core/config"
 	"github.com/Elfsilon/car_booking/internal/bookings/core/database"
 	"github.com/Elfsilon/car_booking/internal/bookings/repositories"
+	appmiddleware "github.com/Elfsilon/car_booking/internal/bookings/router/middleware"
 	"github.com/Elfsilon/car_booking/internal/bookings/services"
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
@@ -22,19 +21,20 @@ func Setup(config *config.AppConfig, db *database.Database) *chi.Mux {
 
 	ctr := controllers.NewBookingController(tariffsService, bookingsService)
 
-	r := chi.NewRouter()
+	rootRouter := chi.NewRouter()
 
-	r.Use(middleware.Logger)
-	r.Use(func(next http.Handler) http.Handler {
-		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			w.Header().Add("Content-Type", "application/json")
-			next.ServeHTTP(w, r)
-		})
-	})
+	rootRouter.Use(middleware.Logger)
+	rootRouter.Use(appmiddleware.DefaultHeadersSetter)
 
-	r.Get("/booked", ctr.GetUnavailableDates)
-	r.Get("/appraise", ctr.AppraisePeriod)
-	r.Post("/book", ctr.Book)
+	rootRouter.Get("/booked", ctr.GetUnavailableDates)
+	rootRouter.Get("/appraise", ctr.AppraisePeriod)
 
-	return r
+	bookRouter := chi.NewRouter()
+	bookRouter.Use(appmiddleware.UserIdHeaderChecker)
+
+	bookRouter.Post("/", ctr.Book)
+	bookRouter.Delete("/{booking_id}", ctr.Unbook)
+	rootRouter.Mount("/book", bookRouter)
+
+	return rootRouter
 }

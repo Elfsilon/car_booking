@@ -33,8 +33,10 @@ SELECT * FROM bookings;
 SELECT count(*)
 FROM bookings
 WHERE car_id = 'c84fde82-6679-4384-af11-7406de3d3e14' AND (
-  '2024-07-27' >= from_date AND '2024-07-27' <= to_date + 3::integer OR 
-  '2024-07-30' >= from_date AND '2024-07-30' <= to_date + 3::integer
+  '2024-05-28' >= from_date - 3::integer AND '2024-05-28' <= to_date + 3::integer OR 
+  '2024-05-28' >= from_date - 3::integer AND '2024-05-28' <= to_date + 3::integer
 );
 
 SELECT to_date, to_date + 3::integer FROM bookings;
+
+DELETE FROM bookings WHERE id = 1;

@@ -32,7 +32,7 @@ func (b *CarBooking) GetUnavailableDates(carID string) ([]models.CarBooking, err
 	return bookings, nil
 }
 
-var ErrStartOrEndAtWeekends = errors.New("booking must not starting and ending at weekends")
+var ErrStartOrEndAtWeekends = errors.New("booking must not starts and ends at weekends")
 var ErrRangeIntersects = errors.New("picked range intersects existing bookings")
 
 func (b *CarBooking) Book(userID, carID string, from, to time.Time) (int, error) {
@@ -51,4 +51,8 @@ func (b *CarBooking) Book(userID, carID string, from, to time.Time) (int, error)
 	}
 
 	return b.rep.Book(userID, carID, from, to)
+}
+
+func (b *CarBooking) Unbook(userID string, bookingID int) error {
+	return b.rep.Unbook(userID, bookingID)
 }

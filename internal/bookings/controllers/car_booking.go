@@ -4,19 +4,21 @@ import (
 	"encoding/json"
 	"errors"
 	"net/http"
+	"strconv"
 	"time"
 
 	"github.com/Elfsilon/car_booking/internal/bookings/appraiser"
 	"github.com/Elfsilon/car_booking/internal/bookings/models"
+	"github.com/Elfsilon/car_booking/internal/bookings/router/constants"
 	"github.com/Elfsilon/car_booking/internal/bookings/services"
 	"github.com/Elfsilon/car_booking/internal/pkg/date"
+	"github.com/go-chi/chi/v5"
 )
 
-type RentRequestBody struct {
-	UserID string    `json:"user_id"`
-	CarID  string    `json:"car_id"`
-	From   date.Date `json:"date_from"`
-	To     date.Date `json:"date_to"`
+type BookRequestBody struct {
+	CarID string    `json:"car_id"`
+	From  date.Date `json:"date_from"`
+	To    date.Date `json:"date_to"`
 }
 
 var ErrRangeOverflow = "invalid period: range must be from 0 to 30 days long (excluding)"
@@ -30,7 +32,7 @@ func countDaysAndValidate(from, to time.Time) (int, error) {
 }
 
 type CarStatusResponse struct {
-	Bookings []models.CarBooking `json:"bookings"`
+	Bookings []models.CarBooking `json:"booked"`
 }
 
 type AppraisePeriodResponse struct {
@@ -133,9 +135,12 @@ func (c *CarBookingController) AppraisePeriod(w http.ResponseWriter, r *http.Req
 }
 
 func (c *CarBookingController) Book(w http.ResponseWriter, r *http.Request) {
-	var body RentRequestBody
+	userID := r.Header.Get(constants.UserIdHeaderKey)
+
+	var body BookRequestBody
 	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
 		http.Error(w, deserializationError(err), 400)
+		return
 	}
 
 	if body.From.Time.After(body.To.Time) {
@@ -149,7 +154,7 @@ func (c *CarBookingController) Book(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	id, err := c.bookings.Book(body.UserID, body.CarID, body.From.Time, body.To.Time)
+	id, err := c.bookings.Book(userID, body.CarID, body.From.Time, body.To.Time)
 	if err != nil {
 		http.Error(w, err.Error(), 500)
 		return
@@ -160,6 +165,24 @@ func (c *CarBookingController) Book(w http.ResponseWriter, r *http.Request) {
 	}{id})
 	if err != nil {
 		http.Error(w, serializationError(err), 500)
+		return
+	}
+}
+
+var ErrInvalidBookingId = "invalid 'booking_id' param: failed parsing to int"
+
+func (c *CarBookingController) Unbook(w http.ResponseWriter, r *http.Request) {
+	userID := r.Header.Get(constants.UserIdHeaderKey)
+
+	bookingIdParam := chi.URLParam(r, "booking_id")
+	bookingID, err := strconv.Atoi(bookingIdParam)
+	if err != nil {
+		http.Error(w, ErrInvalidBookingId, 400)
+		return
+	}
+
+	if err := c.bookings.Unbook(userID, bookingID); err != nil {
+		http.Error(w, err.Error(), 500)
 		return
 	}
 }

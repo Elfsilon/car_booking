@@ -20,7 +20,7 @@ func NewBookings(db *database.Database) *CarBooking {
 // That is to say, method returns all the days where forbidden to book a car
 func (b *CarBooking) GetUnavailableDates(carID string, bookingPause int) ([]models.CarBooking, error) {
 	query := `
-		SELECT from_date, to_date + $1::integer
+		SELECT id, from_date - $1::integer, to_date + $1::integer
 		FROM bookings
 		WHERE car_id = $2
 		ORDER BY to_date
@@ -34,11 +34,13 @@ func (b *CarBooking) GetUnavailableDates(carID string, bookingPause int) ([]mode
 
 	bookings := make([]models.CarBooking, 0)
 	for rows.Next() {
+		var id int
 		var from, to time.Time
-		if err := rows.Scan(&from, &to); err != nil {
+		if err := rows.Scan(&id, &from, &to); err != nil {
 			return nil, err
 		}
 		b := models.CarBooking{
+			ID:   id,
 			From: date.Date{Time: from},
 			To:   date.Date{Time: to},
 		}
@@ -52,9 +54,9 @@ func (b *CarBooking) HasIntersections(carID string, from, to time.Time, bookingP
 	query := `
 		SELECT count(*)
 		FROM bookings
-		WHERE car_id = %1 AND (
-			$1 >= from_date AND $2 <= to_date + $4::integer OR 
-  		$2 >= from_date AND $3 <= to_date + $4::integer
+		WHERE car_id = $1 AND (
+			$2 >= from_date - $4::integer AND $2 <= to_date + $4::integer OR 
+  		$3 >= from_date - $4::integer AND $3 <= to_date + $4::integer
 		)
 	`
 	var intersectionsCount int
@@ -77,4 +79,13 @@ func (b *CarBooking) Book(userID, carID string, from, to time.Time) (int, error)
 		return 0, err
 	}
 	return id, nil
+}
+
+func (b *CarBooking) Unbook(userID string, bookingID int) error {
+	query := `
+		DELETE FROM bookings
+		WHERE user_id = $1 AND id = $2
+	`
+	_, err := b.db.I().Exec(query, userID, bookingID)
+	return err
 }
