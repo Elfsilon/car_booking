@@ -81,8 +81,8 @@ headers:
   User-ID: any uuid
 body:
   car_id: uuid
-	date_from: date_string (YYY-MM-DD)
-	date_to: date_string (YYY-MM-DD)
+  date_from: date_string (YYY-MM-DD)
+  date_to: date_string (YYY-MM-DD)
 ```
 
 Creates booking for the given range. **date_from** and **date_to** can't be weekends and pause between bookings must be at least 3 days. Given range must not be longer than 30 days.
