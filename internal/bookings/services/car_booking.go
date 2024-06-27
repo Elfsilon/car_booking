@@ -9,6 +9,9 @@ import (
 	"github.com/Elfsilon/car_booking/internal/bookings/repositories"
 )
 
+var ErrStartOrEndAtWeekends = errors.New("booking must not starts and ends at weekends")
+var ErrRangeIntersects = errors.New("picked range intersects existing bookings")
+
 type CarBooking struct {
 	config *config.CarBookingConfig
 	cars   *Cars
@@ -39,9 +42,6 @@ func (b *CarBooking) GetUnavailableDates(carID string) ([]models.CarBooking, err
 func (b *CarBooking) GetBookedDates(carID string) ([]models.CarBooking, error) {
 	return b.getUnavailableDates(carID, 0)
 }
-
-var ErrStartOrEndAtWeekends = errors.New("booking must not starts and ends at weekends")
-var ErrRangeIntersects = errors.New("picked range intersects existing bookings")
 
 func (b *CarBooking) Book(userID, carID string, from, to time.Time) (int, error) {
 	startsAtWeekends := from.Weekday() == time.Sunday || from.Weekday() == time.Saturday

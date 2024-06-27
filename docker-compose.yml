@@ -1,0 +1,59 @@
+version: "3.9"
+
+services:
+  app:
+    container_name: app
+    build:
+      context: .
+    deploy:
+      restart_policy:
+        condition: on-failure
+    environment:
+      CONN_STRING: ${CONN_STRING}
+      DB_PASSWORD: ${DB_PASSWORD}
+      HOST: ${HOST}
+      PORT: ${PORT}
+      BOOKING_PAUSE: ${BOOKING_PAUSE}
+    ports:
+      - 3000:${PORT}
+    depends_on:
+      - db
+    networks:
+      - net
+
+  db:
+    image: postgres:16.3
+    hostname: db
+    restart: always
+    environment:
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
+      PGDATA: /var/lib/postgresql/data
+    volumes:
+      - test_vol:/var/lib/postgresql/data
+    ports:
+      - 5432:5432
+    networks:
+      - net
+
+  pgadmin4:
+    image: elestio/pgadmin:latest
+    restart: always
+    environment:
+      PGADMIN_DEFAULT_EMAIL: ${ADMIN_EMAIL}
+      PGADMIN_DEFAULT_PASSWORD: ${ADMIN_PASSWORD}
+      PGADMIN_LISTEN_PORT: 8086
+    ports:
+      - 8086:8086
+    volumes:
+      - ./servers.json:/pgadmin4/servers.json
+    depends_on:
+      - db
+    networks:
+      - net
+
+volumes:
+  test_vol:
+
+networks:
+  net:
+    driver: bridge

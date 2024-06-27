@@ -22,11 +22,15 @@ type BookRequestBody struct {
 	To    date.Date `json:"date_to"`
 }
 
-var ErrRangeOverflow = "invalid period: range must be from 0 to 30 days long (excluding)"
+var ErrRangeOverflow = "invalid period: range must be from 0 to 30 days long"
+var ErrCarIDParamRequired = paramRequired("car_id")
+var ErrFromParamRequired = paramRequired("from")
+var ErrToParamRequired = paramRequired("to")
+var ErrStartIsAfterEnd = "invalid period: 'from' must be earlier than 'to'"
 
 func countDaysAndValidate(from, to time.Time) (int, error) {
-	days := int(to.Sub(from).Hours() / 24)
-	if days > 29 {
+	days := int(to.Sub(from).Hours()/24) + 1
+	if days > 30 {
 		return 0, errors.New(ErrRangeOverflow)
 	}
 	return days, nil
@@ -51,8 +55,6 @@ func NewBookingController(tariffs *services.Tariffs, bookings *services.CarBooki
 		bookings: bookings,
 	}
 }
-
-var ErrCarIDParamRequired = paramRequired("car_id")
 
 // Method for checking the actual available dates for booking
 func (c *CarBookingController) GetUnavailableDates(w http.ResponseWriter, r *http.Request) {
@@ -103,10 +105,6 @@ func (c *CarBookingController) GetBookedDates(w http.ResponseWriter, r *http.Req
 		return
 	}
 }
-
-var ErrFromParamRequired = paramRequired("from")
-var ErrToParamRequired = paramRequired("to")
-var ErrStartIsAfterEnd = "invalid period: 'from' must be earlier than 'to'"
 
 func (c *CarBookingController) AppraisePeriod(w http.ResponseWriter, r *http.Request) {
 	fromDateString := r.URL.Query().Get("from")

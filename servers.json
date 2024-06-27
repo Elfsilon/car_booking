@@ -1,0 +1,13 @@
+{
+  "Servers": {
+      "testing": {
+          "Name": "Booking",
+          "Group": "Servers",
+          "Host": "db",
+          "Port": 5432,
+          "MaintenanceDB": "postgres",
+          "Username": "postgres",
+          "SSLMode": "disable"
+      }
+  }
+}

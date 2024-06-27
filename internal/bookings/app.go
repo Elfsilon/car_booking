@@ -1,6 +1,7 @@
 package bookings
 
 import (
+	"fmt"
 	"net/http"
 
 	"github.com/Elfsilon/car_booking/internal/bookings/core/config"
@@ -18,11 +19,13 @@ func NewApp() *App {
 }
 
 func (a *App) Run() {
-	a.LoadConfig()
-
 	logger, _ := zap.NewProduction()
 	defer logger.Sync()
 
+	logger.Info("loading config")
+	a.LoadConfig()
+
+	logger.Info("Setting up db connection")
 	db := database.NewDatabase(logger, a.config.DB)
 	closeDB, err := db.Open()
 	if err != nil {
@@ -33,11 +36,13 @@ func (a *App) Run() {
 	}
 	defer closeDB()
 
+	logger.Info("Initializing app")
 	server := http.Server{
 		Addr:    a.config.Server.Addr,
 		Handler: router.Setup(a.config, db),
 	}
 
+	logger.Info(fmt.Sprintf("Running up server at %v", a.config.Server.Addr))
 	if err := server.ListenAndServe(); err != nil {
 		logger.Error(err.Error())
 	}

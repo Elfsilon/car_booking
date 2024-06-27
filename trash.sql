@@ -13,7 +13,8 @@ CREATE TABLE bookings(
   user_id uuid,
   car_id uuid,
   from_date date,
-  to_date date
+  to_date date,
+  UNIQUE(car_id, from_date, to_date)
 );
 
 INSERT INTO tariffs(name, price) VALUES ('basic', 1000.0);

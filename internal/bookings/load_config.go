@@ -2,6 +2,7 @@ package bookings
 
 import (
 	"fmt"
+	"os"
 
 	"github.com/Elfsilon/car_booking/internal/bookings/core/config"
 	"github.com/Elfsilon/car_booking/internal/pkg/env"
@@ -10,7 +11,7 @@ import (
 func (a *App) LoadConfig() {
 	conn := env.MustLoadString("CONN_STRING")
 
-	host, port := env.MustLoadString("HOST"), env.MustLoadInt("PORT")
+	host, port := os.Getenv("HOST"), env.MustLoadInt("PORT")
 	addr := fmt.Sprintf("%v:%v", host, port)
 
 	bookingPause := env.MustLoadInt("BOOKING_PAUSE")
