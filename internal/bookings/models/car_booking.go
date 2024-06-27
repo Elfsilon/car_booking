@@ -7,3 +7,9 @@ type CarBooking struct {
 	From date.Date `json:"date_from"`
 	To   date.Date `json:"date_to"`
 }
+
+type ReportRecord struct {
+	CarID       string `json:"car_id"`
+	CarSign     string `json:"car_sign"`
+	PercentLoad int    `json:"percent_load"`
+}

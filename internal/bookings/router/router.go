@@ -26,8 +26,10 @@ func Setup(config *config.AppConfig, db *database.Database) *chi.Mux {
 	rootRouter.Use(middleware.Logger)
 	rootRouter.Use(appmiddleware.DefaultHeadersSetter)
 
-	rootRouter.Get("/booked", ctr.GetUnavailableDates)
+	rootRouter.Get("/unavailable_dates", ctr.GetUnavailableDates)
+	rootRouter.Get("/booked_dates", ctr.GetBookedDates)
 	rootRouter.Get("/appraise", ctr.AppraisePeriod)
+	rootRouter.Get("/report", ctr.CreateReport)
 
 	bookRouter := chi.NewRouter()
 	bookRouter.Use(appmiddleware.UserIdHeaderChecker)

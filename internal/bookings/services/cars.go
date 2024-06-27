@@ -8,13 +8,19 @@ import (
 
 var ErrCarNotFound = errors.New("car with provided id not found")
 
+type mockedCar struct {
+	Sign  string
+	Name  string
+	Color string
+}
+
 type Cars struct {
-	cars map[string]models.CarInfo
+	cars map[string]mockedCar
 }
 
 func NewMockCars() *Cars {
 	return &Cars{
-		cars: map[string]models.CarInfo{
+		cars: map[string]mockedCar{
 			"c84fde82-6679-4384-af11-7406de3d3e14": {Sign: "Н314ХО123", Name: "Lada Granta", Color: "White"},
 			"e78b2415-b47c-435a-91e2-655ec5a08023": {Sign: "М265ДЫ123", Name: "Lada Vesta", Color: "Blue"},
 			"b46cbaa7-d02f-4571-ab6e-1883813715bf": {Sign: "К159ЕК93", Name: "Kia Rio", Color: "White"},
@@ -24,10 +30,30 @@ func NewMockCars() *Cars {
 	}
 }
 
+func (s *Cars) List() []models.CarInfo {
+	cars := make([]models.CarInfo, 0)
+	for carID, info := range s.cars {
+		cars = append(cars, models.CarInfo{
+			CarID: carID,
+			Sign:  info.Sign,
+			Name:  info.Name,
+			Color: info.Color,
+		})
+	}
+	return cars
+}
+
 func (s *Cars) GetInfo(carID string) (models.CarInfo, error) {
 	info, ok := s.cars[carID]
 	if !ok {
 		return models.CarInfo{}, ErrCarNotFound
 	}
-	return info, nil
+
+	res := models.CarInfo{
+		CarID: carID,
+		Sign:  info.Sign,
+		Name:  info.Name,
+		Color: info.Color,
+	}
+	return res, nil
 }

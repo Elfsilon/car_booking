@@ -3,6 +3,7 @@ package controllers
 import (
 	"encoding/json"
 	"errors"
+	"fmt"
 	"net/http"
 	"strconv"
 	"time"
@@ -62,6 +63,31 @@ func (c *CarBookingController) GetUnavailableDates(w http.ResponseWriter, r *htt
 	}
 
 	bookings, err := c.bookings.GetUnavailableDates(carID)
+	if err != nil {
+		if errors.Is(err, services.ErrCarNotFound) {
+			http.Error(w, err.Error(), 400)
+		} else {
+			http.Error(w, err.Error(), 500)
+		}
+		return
+	}
+
+	err = json.NewEncoder(w).Encode(CarStatusResponse{bookings})
+	if err != nil {
+		http.Error(w, serializationError(err), 500)
+		return
+	}
+}
+
+// Returns only bookings without adding booking_pause before and after range
+func (c *CarBookingController) GetBookedDates(w http.ResponseWriter, r *http.Request) {
+	carID := r.URL.Query().Get("car_id")
+	if carID == "" {
+		http.Error(w, ErrCarIDParamRequired, 400)
+		return
+	}
+
+	bookings, err := c.bookings.GetBookedDates(carID)
 	if err != nil {
 		if errors.Is(err, services.ErrCarNotFound) {
 			http.Error(w, err.Error(), 400)
@@ -169,20 +195,48 @@ func (c *CarBookingController) Book(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-var ErrInvalidBookingId = "invalid 'booking_id' param: failed parsing to int"
-
 func (c *CarBookingController) Unbook(w http.ResponseWriter, r *http.Request) {
 	userID := r.Header.Get(constants.UserIdHeaderKey)
 
 	bookingIdParam := chi.URLParam(r, "booking_id")
 	bookingID, err := strconv.Atoi(bookingIdParam)
 	if err != nil {
-		http.Error(w, ErrInvalidBookingId, 400)
+		http.Error(w, invalidIntParam("booking_id"), 400)
 		return
 	}
 
 	if err := c.bookings.Unbook(userID, bookingID); err != nil {
 		http.Error(w, err.Error(), 500)
+		return
+	}
+}
+
+func (c *CarBookingController) CreateReport(w http.ResponseWriter, r *http.Request) {
+	year, month := r.URL.Query().Get("year"), r.URL.Query().Get("month")
+	if year == "" {
+		http.Error(w, paramRequired("year"), 400)
+		return
+	}
+	if month == "" {
+		http.Error(w, paramRequired("month"), 400)
+		return
+	}
+
+	dateString := fmt.Sprintf("%04v-%02v-01", year, month)
+	date, err := time.Parse(time.DateOnly, dateString)
+	if err != nil {
+		http.Error(w, err.Error(), 400)
+		return
+	}
+
+	report, err := c.bookings.CreateReport(date)
+	if err != nil {
+		http.Error(w, err.Error(), 500)
+		return
+	}
+
+	if err := json.NewEncoder(w).Encode(report); err != nil {
+		http.Error(w, serializationError(err), 500)
 		return
 	}
 }

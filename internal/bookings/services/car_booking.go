@@ -19,17 +19,25 @@ func NewBookings(config *config.CarBookingConfig, cars *Cars, rep *repositories.
 	return &CarBooking{config, cars, rep}
 }
 
-func (b *CarBooking) GetUnavailableDates(carID string) ([]models.CarBooking, error) {
+func (b *CarBooking) getUnavailableDates(carID string, bookingPause int) ([]models.CarBooking, error) {
 	if _, err := b.cars.GetInfo(carID); err != nil {
 		return nil, err
 	}
 
-	bookings, err := b.rep.GetUnavailableDates(carID, b.config.BookingPause)
+	bookings, err := b.rep.GetUnavailableDates(carID, bookingPause)
 	if err != nil {
 		return nil, err
 	}
 
 	return bookings, nil
+}
+
+func (b *CarBooking) GetUnavailableDates(carID string) ([]models.CarBooking, error) {
+	return b.getUnavailableDates(carID, b.config.BookingPause)
+}
+
+func (b *CarBooking) GetBookedDates(carID string) ([]models.CarBooking, error) {
+	return b.getUnavailableDates(carID, 0)
 }
 
 var ErrStartOrEndAtWeekends = errors.New("booking must not starts and ends at weekends")
@@ -55,4 +63,22 @@ func (b *CarBooking) Book(userID, carID string, from, to time.Time) (int, error)
 
 func (b *CarBooking) Unbook(userID string, bookingID int) error {
 	return b.rep.Unbook(userID, bookingID)
+}
+
+func (b *CarBooking) CreateReport(date time.Time) ([]models.ReportRecord, error) {
+	report, err := b.rep.CreateReport(date)
+	if err != nil {
+		return nil, err
+	}
+
+	reportSlice := make([]models.ReportRecord, 0)
+	for _, car := range b.cars.List() {
+		rec := report[car.CarID]
+		reportSlice = append(reportSlice, models.ReportRecord{
+			CarID:       car.CarID,
+			CarSign:     car.Sign,
+			PercentLoad: rec.PercentLoad,
+		})
+	}
+	return reportSlice, nil
 }

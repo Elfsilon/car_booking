@@ -16,8 +16,9 @@ func NewBookings(db *database.Database) *CarBooking {
 	return &CarBooking{db}
 }
 
-// Returns bookings, where end_date == actual_end_date + booking_pause in days.
-// That is to say, method returns all the days where forbidden to book a car
+// Returns bookings, where start_date == actual_start_date - booking_pause and
+// end_date == actual_end_date + booking_pause in days. That is to say, method
+// returns all the days where booking is not allowed
 func (b *CarBooking) GetUnavailableDates(carID string, bookingPause int) ([]models.CarBooking, error) {
 	query := `
 		SELECT id, from_date - $1::integer, to_date + $1::integer
@@ -88,4 +89,46 @@ func (b *CarBooking) Unbook(userID string, bookingID int) error {
 	`
 	_, err := b.db.I().Exec(query, userID, bookingID)
 	return err
+}
+
+// date - important only year and month, day and time could be any
+func (b *CarBooking) CreateReport(date time.Time) (map[string]models.ReportRecord, error) {
+	query := `
+		WITH start_end_month_dates AS (
+			SELECT 
+				date_trunc('month', $1::date)::date as month_start_date,
+				(date_trunc('month', $1::date) + interval '1 month')::date as month_end_date
+		), days_in_month AS (
+			SELECT EXTRACT(epoch FROM (month_end_date::timestamp - month_start_date::timestamp)) / 86400 as days_count
+			FROM start_end_month_dates
+		), computed_booked_days_count AS (
+			SELECT 
+				car_id,
+				CASE WHEN to_date >= month_end_date THEN month_end_date - 1::integer ELSE to_date END - 
+					CASE WHEN from_date < month_start_date THEN month_start_date ELSE from_date END + 1::integer 
+					as booked_days
+			FROM bookings, start_end_month_dates
+			WHERE from_date < month_end_date AND to_date >= month_start_date
+		)
+
+		SELECT car_id, ROUND(sum(booked_days) / days_count * 100) as booked_percent
+		FROM computed_booked_days_count, days_in_month
+		GROUP BY car_id, days_count
+	`
+
+	rows, err := b.db.I().Query(query, date)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	report := make(map[string]models.ReportRecord, 0)
+	for rows.Next() {
+		rec := models.ReportRecord{}
+		if err := rows.Scan(&rec.CarID, &rec.PercentLoad); err != nil {
+			return nil, err
+		}
+		report[rec.CarID] = rec
+	}
+	return report, nil
 }
